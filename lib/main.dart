@@ -1,62 +1,43 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter/foundation.dart';
-
-import 'env.dart';
-import 'theme.dart';
 import 'screens/auth_screen.dart';
-import 'screens/notes_screen.dart';
-import 'providers/auth_provider.dart'; // includes both authProvider and authStateProvider
+import 'screens/note_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load .env only for non-web platforms
-  if (!kIsWeb) {
-    try {
-      await dotenv.load(fileName: ".env");
-      debugPrint('✅ .env loaded');
-    } catch (e) {
-      debugPrint('❌ Failed to load .env: $e');
-    }
-  }
-
-  // Initialize Supabase
   await Supabase.initialize(
-    url: Env.supabaseUrl,
-    anonKey: Env.supabaseAnonKey,
+    url: 'https://ydczphujuezkncyanhwc.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlkY3pwaHVqdWV6a25jeWFuaHdjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NjQ3OTQsImV4cCI6MjA3NTE0MDc5NH0.RBXdiCHuvNd8E5BB2dhpzyJ10JxJcdirq1y5DlxDasI',
   );
-  debugPrint('✅ Supabase initialized');
-  debugPrint('🔗 Supabase URL: ${Env.supabaseUrl}');
-  debugPrint('🔑 Supabase Key: ${Env.supabaseAnonKey}');
 
-  runApp(const ProviderScope(child: MyApp()));
+  runApp(const NoteApp());
 }
 
-class MyApp extends ConsumerWidget {
-  const MyApp({super.key});
+class NoteApp extends StatelessWidget {
+  const NoteApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final authState = ref.watch(authStateProvider);
+  Widget build(BuildContext context) {
+    final isLoggedIn = Supabase.instance.client.auth.currentSession != null;
 
     return MaterialApp(
-      title: 'Notes App',
-      theme: appTheme,
-      home: authState.when(
-        data: (event) {
-          final session = event.session;
-          return session == null ? const AuthScreen() : const NotesScreen();
-        },
-        loading: () => const Scaffold(
-          body: Center(child: CircularProgressIndicator()),
-        ),
-        error: (e, _) => Scaffold(
-          body: Center(child: Text('Error: $e')),
+      debugShowCheckedModeBanner: false,
+      title: 'Note App',
+      theme: ThemeData(
+        primarySwatch: Colors.deepPurple,
+        scaffoldBackgroundColor: const Color(0xFFF5F1FA),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          elevation: 0,
+          centerTitle: true,
         ),
       ),
+      initialRoute: isLoggedIn ? '/notes' : '/auth',
+      routes: {
+        '/auth': (context) => const AuthScreen(),
+        '/notes': (context) => const NotesScreen(),
+      },
     );
   }
 }

@@ -1,66 +1,94 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../models/note.dart';
 
 class SupabaseService {
-  final client = Supabase.instance.client;
+  final SupabaseClient supabase = Supabase.instance.client;
 
   // 🔐 Authentication
-  Future<void> signUp(String email, String password) async {
-    await client.auth.signUp(email: email, password: password);
+  Future<void> signIn({required String email, required String password}) async {
+    final response = await supabase.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
+    if (response.user == null) {
+      throw Exception('Invalid credentials');
+    }
   }
 
-  Future<void> signIn(String email, String password) async {
-    await client.auth.signInWithPassword(email: email, password: password);
+  Future<void> signUp({required String email, required String password}) async {
+    final response = await supabase.auth.signUp(
+      email: email,
+      password: password,
+    );
+    if (response.user == null) {
+      throw Exception('Sign up failed');
+    }
+  }
+
+  bool isAuthenticated() {
+    return supabase.auth.currentUser != null;
   }
 
   Future<void> signOut() async {
-    await client.auth.signOut();
+    await supabase.auth.signOut();
   }
 
-  // 📄 Fetch notes for current user
-  Future<List<Note>> fetchNotes() async {
-    final userId = client.auth.currentUser?.id;
-    if (userId == null) return [];
+  // 📝 Notes CRUD
+  Future<Map<String, dynamic>> createNote({
+    required String title,
+    required String content,
+    required int priority,
+  }) async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not logged in');
 
-    final response = await client
+    final response = await supabase
+        .from('notes')
+        .insert({
+          'user_id': userId,
+          'title': title,
+          'content': content,
+          'priority': priority,
+        })
+        .select()
+        .single();
+
+    return response;
+  }
+
+  Future<Map<String, dynamic>> updateNote({
+    required String noteId, // ✅ Changed from int to String
+    required String title,
+    required String content,
+    required int priority,
+  }) async {
+    final response = await supabase
+        .from('notes')
+        .update({
+          'title': title,
+          'content': content,
+          'priority': priority,
+        })
+        .eq('id', noteId) // ✅ UUID match
+        .select()
+        .single();
+
+    return response;
+  }
+
+  Future<List<Map<String, dynamic>>> fetchUserNotes() async {
+    final userId = supabase.auth.currentUser?.id;
+    if (userId == null) throw Exception('User not logged in');
+
+    final response = await supabase
         .from('notes')
         .select()
         .eq('user_id', userId)
         .order('created_at', ascending: false);
 
-    try {
-      final data = response as List<dynamic>;
-      return data.map((e) => Note.fromJson(e)).toList();
-    } catch (e) {
-      debugPrint('Error parsing notes: $e');
-      return [];
-    }
+    return response;
   }
 
-  // ➕ Add new note
-  Future<void> addNote(String title, String content) async {
-    final userId = client.auth.currentUser?.id;
-    if (userId == null) return;
-
-    await client.from('notes').insert({
-      'title': title,
-      'content': content,
-      'user_id': userId,
-    });
+  Future<void> deleteNote(String id) async { // ✅ Changed from int to String
+    await supabase.from('notes').delete().eq('id', id);
   }
-
-  // ✏️ Update existing note
-  Future<void> updateNote(String id, String title, String content) async {
-    await client
-        .from('notes')
-        .update({'title': title, 'content': content})
-        .eq('id', id);
-  }
-
-  // 🗑️ Delete note
-  Future<void> deleteNote(String id) async {
-    await client.from('notes').delete().eq('id', id);
-  }
-  
-  void debugPrint(String s) {}
 }

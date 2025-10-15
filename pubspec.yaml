@@ -1,26 +1,22 @@
 name: noteapp
-description: A Supabase-powered notes app built with Flutter
+description: A multi-user notes application with Supabase authentication.
 publish_to: 'none'
 
 version: 1.0.0+1
 
 environment:
-  sdk: ">=3.0.0 <4.0.0"
+  sdk: '>=3.9.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  flutter_riverpod: ^2.4.0
-  supabase_flutter: ^1.10.7
-  flutter_dotenv: ^5.1.0
+  supabase_flutter: ^2.5.0
+  dotenv: ^4.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_lints: ^3.0.1
 
 flutter:
   uses-material-design: true
-
- 
-  
-  
