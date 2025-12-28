@@ -1,68 +1,128 @@
-class Note {
-  final String id; // ✅ Changed from int to String
-  final String userId;
-  final String title;
-  final String content;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final int priority;
+// ignore_for_file: invalid_annotation_target
 
-  Note({
-    required this.id,
-    required this.userId,
-    required this.title,
-    required this.content,
-    required this.createdAt,
-    required this.updatedAt,
-    required this.priority,
-  });
+import 'package:flutter/material.dart';
+import 'package:freezed_annotation/freezed_annotation.dart';
 
-  factory Note.fromJson(Map<String, dynamic> json) {
-    return Note(
-      id: json['id'] ?? '', // ✅ UUID is a string
-      userId: json['user_id'] ?? '',
-      title: json['title'] ?? '',
-      content: json['content'] ?? '',
-      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(json['updated_at'] ?? DateTime.now().toIso8601String()),
-      priority: json['priority'] ?? 1,
-    );
+part 'note_model.freezed.dart';
+part 'note_model.g.dart';
+
+/// Represents a note with sticky note styling
+@freezed
+class Note with _$Note {
+  const factory Note({
+    required String id,
+    required String title,
+    required String content,
+    @JsonKey(name: 'user_id') required String userId,
+    @JsonKey(name: 'created_at') required DateTime createdAt,
+    @Default('yellow') String color,
+    @JsonKey(name: 'updated_at') DateTime? updatedAt,
+  }) = _Note;
+
+  /// Creates a Note from JSON (Supabase response)
+  factory Note.fromJson(Map<String, dynamic> json) => _$NoteFromJson(json);
+}
+
+/// Sticky note color presets with unique gradients
+enum NoteColor {
+  yellow,
+  pink,
+  blue,
+  green,
+  purple,
+  orange,
+  mint,
+  coral;
+
+  String get displayName {
+    switch (this) {
+      case NoteColor.yellow:
+        return 'Sunshine';
+      case NoteColor.pink:
+        return 'Rose';
+      case NoteColor.blue:
+        return 'Ocean';
+      case NoteColor.green:
+        return 'Forest';
+      case NoteColor.purple:
+        return 'Lavender';
+      case NoteColor.orange:
+        return 'Tangerine';
+      case NoteColor.mint:
+        return 'Mint';
+      case NoteColor.coral:
+        return 'Coral';
+    }
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'user_id': userId,
-      'title': title,
-      'content': content,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-      'priority': priority,
-    };
+  Color get primary {
+    switch (this) {
+      case NoteColor.yellow:
+        return const Color(0xFFFFF9C4);
+      case NoteColor.pink:
+        return const Color(0xFFFCE4EC);
+      case NoteColor.blue:
+        return const Color(0xFFE3F2FD);
+      case NoteColor.green:
+        return const Color(0xFFE8F5E9);
+      case NoteColor.purple:
+        return const Color(0xFFF3E5F5);
+      case NoteColor.orange:
+        return const Color(0xFFFFE0B2);
+      case NoteColor.mint:
+        return const Color(0xFFE0F2F1);
+      case NoteColor.coral:
+        return const Color(0xFFFFCCBC);
+    }
   }
 
-  Note copyWith({
-    String? id, // ✅ Changed from int? to String?
-    String? userId,
-    String? title,
-    String? content,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    int? priority,
-  }) {
-    return Note(
-      id: id ?? this.id,
-      userId: userId ?? this.userId,
-      title: title ?? this.title,
-      content: content ?? this.content,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      priority: priority ?? this.priority,
-    );
+  Color get secondary {
+    switch (this) {
+      case NoteColor.yellow:
+        return const Color(0xFFFFF59D);
+      case NoteColor.pink:
+        return const Color(0xFFF8BBD0);
+      case NoteColor.blue:
+        return const Color(0xFFBBDEFB);
+      case NoteColor.green:
+        return const Color(0xFFC8E6C9);
+      case NoteColor.purple:
+        return const Color(0xFFE1BEE7);
+      case NoteColor.orange:
+        return const Color(0xFFFFCC80);
+      case NoteColor.mint:
+        return const Color(0xFFB2DFDB);
+      case NoteColor.coral:
+        return const Color(0xFFFFAB91);
+    }
   }
 
-  @override
-  String toString() {
-    return 'Note(id: $id, title: $title, priority: $priority)';
+  Color get accent {
+    switch (this) {
+      case NoteColor.yellow:
+        return const Color(0xFFFDD835);
+      case NoteColor.pink:
+        return const Color(0xFFEC407A);
+      case NoteColor.blue:
+        return const Color(0xFF42A5F5);
+      case NoteColor.green:
+        return const Color(0xFF66BB6A);
+      case NoteColor.purple:
+        return const Color(0xFFAB47BC);
+      case NoteColor.orange:
+        return const Color(0xFFFF9800);
+      case NoteColor.mint:
+        return const Color(0xFF26A69A);
+      case NoteColor.coral:
+        return const Color(0xFFFF7043);
+    }
+  }
+
+  Color get textColor {
+    return const Color(0xFF37474F);
+  }
+
+  Color get shadowColor {
+    return accent.withValues(alpha: 0.3);
   }
 }
