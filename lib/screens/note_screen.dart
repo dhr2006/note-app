@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import 'package:noteapp/models/note_model.dart';
+import '../models/note_model.dart';
 import '../services/supabase_service.dart';
 import '../widgets/sticky_note_card.dart';
 
@@ -101,9 +101,8 @@ class NotesScreen extends ConsumerWidget {
           return GridView.builder(
             padding: const EdgeInsets.all(16),
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              // ignore: avoid_redundant_argument_values
-              childAspectRatio: 1,
+              crossAxisCount: 2,
+              childAspectRatio: 0.75,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
             ),
@@ -118,11 +117,8 @@ class NotesScreen extends ConsumerWidget {
               return StickyNoteCard(
                 note: note,
                 color: selectedColor,
-                onTap: () => _showNoteDialog(context, ref, note: note),
-                onDelete: () {
-                  print('🔴🔴🔴 DELETE BUTTON CLICKED for note: ${note.id}');
-                  _deleteNote(context, ref, note.id);
-                },
+                onTap: () => _navigateToNoteDialog(context, ref, note: note),
+                onDelete: () => _deleteNote(context, ref, note.id),
               );
             },
           );
@@ -147,7 +143,7 @@ class NotesScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showNoteDialog(context, ref),
+        onPressed: () => _navigateToNoteDialog(context, ref),
         icon: const Icon(Icons.add),
         label: const Text('New Note'),
         backgroundColor: Colors.amber[700],
@@ -156,247 +152,15 @@ class NotesScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _showNoteDialog(
+  void _navigateToNoteDialog(
     BuildContext context,
     WidgetRef ref, {
     Note? note,
-  }) async {
-    final titleController = TextEditingController(text: note?.title ?? '');
-    final contentController = TextEditingController(text: note?.content ?? '');
-    final formKey = GlobalKey<FormState>();
-
-    NoteColor selectedColor = note != null
-        ? NoteColor.values.firstWhere(
-            (c) => c.name.toLowerCase() == note.color.toLowerCase(),
-            orElse: () => NoteColor.yellow,
-          )
-        : NoteColor.yellow;
-
-    if (!context.mounted) return;
-
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) => StatefulBuilder(
-        builder: (stateContext, setState) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: selectedColor.primary,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  Icons.sticky_note_2,
-                  color: selectedColor.accent,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(note == null ? 'New Sticky Note' : 'Edit Note'),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  TextFormField(
-                    controller: titleController,
-                    decoration: InputDecoration(
-                      labelText: 'Title',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.title),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                    ),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter a title';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: contentController,
-                    decoration: InputDecoration(
-                      labelText: 'Content',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      prefixIcon: const Icon(Icons.notes),
-                      filled: true,
-                      fillColor: Colors.grey[50],
-                    ),
-                    maxLines: 5,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter content';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'Choose Color:',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: NoteColor.values.map((color) {
-                      final isSelected = selectedColor == color;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            selectedColor = color;
-                          });
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: isSelected ? 65 : 55,
-                          height: isSelected ? 65 : 55,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                color.primary,
-                                color.secondary,
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: isSelected
-                                  ? color.accent
-                                  : Colors.transparent,
-                              width: 3,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: color.shadowColor,
-                                offset: const Offset(2, 2),
-                                blurRadius: isSelected ? 8 : 4,
-                              ),
-                            ],
-                          ),
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                if (isSelected)
-                                  Icon(
-                                    Icons.check_circle,
-                                    color: color.accent,
-                                    size: 24,
-                                  ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  color.displayName,
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                    color: color.textColor,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-
-                try {
-                  final service = ref.read(supabaseServiceProvider);
-
-                  if (note == null) {
-                    await service.createNote(
-                      title: titleController.text.trim(),
-                      content: contentController.text.trim(),
-                      color: selectedColor.name.toLowerCase(),
-                    );
-                  } else {
-                    await service.updateNote(
-                      id: note.id,
-                      title: titleController.text.trim(),
-                      content: contentController.text.trim(),
-                      color: selectedColor.name.toLowerCase(),
-                    );
-                  }
-
-                  ref.invalidate(notesListProvider);
-                  if (dialogContext.mounted) {
-                    Navigator.pop(dialogContext);
-                  }
-
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          note == null ? '✅ Note created!' : '✅ Note updated!',
-                        ),
-                        backgroundColor: Colors.green,
-                        behavior: SnackBarBehavior.floating,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('❌ Error: $e'),
-                        backgroundColor: Colors.red,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  }
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: selectedColor.accent,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-              ),
-              child: Text(
-                note == null ? 'Create' : 'Update',
-                style: const TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => NoteDialogScreen(note: note),
+        fullscreenDialog: true,
       ),
     );
   }
@@ -406,8 +170,6 @@ class NotesScreen extends ConsumerWidget {
     WidgetRef ref,
     String noteId,
   ) async {
-    print('🟢 _deleteNote called with noteId: $noteId');
-    
     final bool? confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -427,17 +189,11 @@ class NotesScreen extends ConsumerWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              print('🟡 Cancel clicked');
-              Navigator.pop(dialogContext, false);
-            },
+            onPressed: () => Navigator.pop(dialogContext, false),
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              print('🔵 Delete confirmed');
-              Navigator.pop(dialogContext, true);
-            },
+            onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
@@ -451,14 +207,10 @@ class NotesScreen extends ConsumerWidget {
       ),
     );
 
-    print('🟣 Dialog result confirmed: $confirmed');
-
     if (confirmed == true) {
       try {
-        print('🟠 Calling service.deleteNote($noteId)');
         final service = ref.read(supabaseServiceProvider);
         await service.deleteNote(noteId);
-        print('🟢 Delete successful!');
         ref.invalidate(notesListProvider);
 
         if (context.mounted) {
@@ -474,7 +226,6 @@ class NotesScreen extends ConsumerWidget {
           );
         }
       } catch (e) {
-        print('🔴 DELETE ERROR: $e');
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -484,6 +235,283 @@ class NotesScreen extends ConsumerWidget {
             ),
           );
         }
+      }
+    }
+  }
+}
+
+// ============================================================
+// SEPARATE FULL SCREEN FOR NOTE DIALOG
+// ============================================================
+
+class NoteDialogScreen extends ConsumerStatefulWidget {
+  const NoteDialogScreen({this.note, super.key});
+
+  final Note? note;
+
+  @override
+  ConsumerState<NoteDialogScreen> createState() => _NoteDialogScreenState();
+}
+
+class _NoteDialogScreenState extends ConsumerState<NoteDialogScreen> {
+  late final TextEditingController _titleController;
+  late final TextEditingController _contentController;
+  final _formKey = GlobalKey<FormState>();
+  late NoteColor _selectedColor;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController(text: widget.note?.title ?? '');
+    _contentController =
+        TextEditingController(text: widget.note?.content ?? '');
+    _selectedColor = widget.note != null
+        ? NoteColor.values.firstWhere(
+            (c) => c.name.toLowerCase() == widget.note!.color.toLowerCase(),
+            orElse: () => NoteColor.yellow,
+          )
+        : NoteColor.yellow;
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.close, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: Text(
+          widget.note == null ? 'Create Note' : 'Edit Note',
+          style: const TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        actions: [
+          if (_isSaving)
+            const Padding(
+              padding: EdgeInsets.all(16),
+              child: SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            )
+          else
+            TextButton(
+              onPressed: _handleSave,
+              child: Text(
+                widget.note == null ? 'Create' : 'Update',
+                style: TextStyle(
+                  color: _selectedColor.accent,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Color indicator
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [_selectedColor.primary, _selectedColor.secondary],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.sticky_note_2, color: _selectedColor.accent),
+                    const SizedBox(width: 12),
+                    Text(
+                      _selectedColor.displayName,
+                      style: TextStyle(
+                        color: _selectedColor.textColor,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Title Field
+              TextFormField(
+                controller: _titleController,
+                enabled: !_isSaving,
+                autofocus: true,
+                textInputAction: TextInputAction.next,
+                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                decoration: const InputDecoration(
+                  labelText: 'Title',
+                  hintText: 'Enter note title',
+                  prefixIcon: Icon(Icons.title),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter a title';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 20),
+
+              // Content Field
+              TextFormField(
+                controller: _contentController,
+                enabled: !_isSaving,
+                maxLines: 10,
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(
+                  labelText: 'Content',
+                  hintText: 'Enter note content',
+                  prefixIcon: Icon(Icons.notes),
+                  alignLabelWithHint: true,
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter content';
+                  }
+                  return null;
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Color Picker
+              const Text(
+                'Choose Color:',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: NoteColor.values.map((color) {
+                  final isSelected = _selectedColor == color;
+                  return GestureDetector(
+                    onTap: _isSaving
+                        ? null
+                        : () {
+                            setState(() {
+                              _selectedColor = color;
+                            });
+                          },
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [color.primary, color.secondary],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? color.accent : Colors.grey[300]!,
+                          width: isSelected ? 3 : 1,
+                        ),
+                        boxShadow: [
+                          if (isSelected)
+                            BoxShadow(
+                              color: color.shadowColor,
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                        ],
+                      ),
+                      child: isSelected
+                          ? Icon(Icons.check_circle, color: color.accent, size: 32)
+                          : null,
+                    ),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleSave() async {
+    FocusScope.of(context).unfocus();
+
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final service = ref.read(supabaseServiceProvider);
+
+      if (widget.note == null) {
+        await service.createNote(
+          title: _titleController.text.trim(),
+          content: _contentController.text.trim(),
+          color: _selectedColor.name.toLowerCase(),
+        );
+      } else {
+        await service.updateNote(
+          id: widget.note!.id,
+          title: _titleController.text.trim(),
+          content: _contentController.text.trim(),
+          color: _selectedColor.name.toLowerCase(),
+        );
+      }
+
+      ref.invalidate(notesListProvider);
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.note == null ? '✅ Note created!' : '✅ Note updated!',
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ Error: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
     }
   }
